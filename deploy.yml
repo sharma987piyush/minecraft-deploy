@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: minecraft-server
-        image: "<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/my-minecraft-server:1.0"
+        image: placeholder
         ports:
         - containerPort: 25565 
         resources:
