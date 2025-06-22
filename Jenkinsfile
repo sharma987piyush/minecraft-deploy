@@ -69,9 +69,9 @@ pipeline {
                 script {
                     withAWS(credentials: "${AWS_CREDS_ID}", region: "${AWS_REGION}") {
                         sh "aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}"
-                        sh "sed -i 's|image:.*|image: ${ECR_IMAGE_URL}|g' deploy.yaml"
-                        sh 'kubectl apply -f deploy.yaml'
-                        sh 'kubectl apply -f service.yaml'
+                        sh "sed -i 's|image:.*|image: ${ECR_IMAGE_URL}|g' deploy.yml"
+                        sh 'kubectl apply -f deploy.yml'
+                        sh 'kubectl apply -f service.yml'
                         sh 'kubectl apply -f hpa.yml'
                     }
                 }
