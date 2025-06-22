@@ -6,7 +6,7 @@ pipeline {
         ECR_REPOSITORY    = 'mine-ecr' 
         IMAGE_TAG         = "build-${BUILD_NUMBER}" 
         EKS_CLUSTER_NAME  = 'my-minecraft-cluster' 
-        AWS_CREDS_ID      = 'aws-creds' 
+        AWS_CREDS_ID      = 'aws-cred' 
     }
 
     stages {
