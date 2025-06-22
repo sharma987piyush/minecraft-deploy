@@ -1,52 +1,63 @@
 pipeline {
     agent any
-    
+
     environment {
-        AWS_REGION        = 'us-east-1'
-        ECR_REGISTRY      = '395305481503.dkr.ecr.us-east-1.amazonaws.com'
-        ECR_REPOSITORY    = 'mine-ecr'
-        IMAGE_TAG         = "build-${BUILD_NUMBER}"
-        EKS_CLUSTER_NAME  = 'my-minecraft-cluster'
-        AWS_CREDS_ID      = 'aws-cred'
+        // --- YEH VALUES APNE SETUP KE HISAAB SE BADLEIN ---
+        AWS_REGION            = 'us-east-1'
+        AWS_ACCOUNT_ID        = '395305481503' 
+        ECR_REPOSITORY_NAME   = 'mine-ecr'             
+        EKS_CLUSTER_NAME      = 'my-minecraft-cluster' 
+        K8S_DEPLOYMENT_NAME   = 'minecraft-deployment' 
+        K8S_CONTAINER_NAME    = 'minecraft-server'     
+        AWS_CREDS_ID          = 'aws-cred'             
+        
+        IMAGE_TAG             = "build-${BUILD_NUMBER}"
+        ECR_REGISTRY_URL      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_IMAGE_URL         = "${ECR_REGISTRY_URL}/${ECR_REPOSITORY_NAME}:${IMAGE_TAG}"
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('1. Checkout Code') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build Docker Image') {
+        stage('2. Build Docker Image') {
             steps {
-                script {
-                    sh "docker build -t ${ECR_REPOSITORY}:${IMAGE_TAG} ."
+                sh "docker build -t ${ECR_REPOSITORY_NAME}:${IMAGE_TAG} ."
+            }
+        }
+
+        stage('3. Push to Amazon ECR') {
+            steps {
+                withAWS(credentials: "${AWS_CREDS_ID}", region: "${AWS_REGION}") {
+                    def ecrLoginCommand = "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY_URL}"
+                    sh ecrLoginCommand
+                    sh "docker tag ${ECR_REPOSITORY_NAME}:${IMAGE_TAG} ${ECR_IMAGE_URL}"
+                    sh "docker push ${ECR_IMAGE_URL}"
                 }
             }
         }
 
-        stage('Push to ECR') {
+        stage('4. Deploy to Amazon EKS') {
             steps {
-                script {
-                    withAWS(credentials: "${AWS_CREDS_ID}", region: "${AWS_REGION}") {
-                        def ecrLoginCommand = "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
-                        sh ecrLoginCommand
-                        sh "docker tag ${ECR_REPOSITORY}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-                        sh "docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-                    }
+                withAWS(credentials: "${AWS_CREDS_ID}", region: "${AWS_REGION}") {
+                    sh "aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}"
+                    
+                    sh "sed -i 's|image:.*|image: ${ECR_IMAGE_URL}|g' deployment.yaml"
+
+                    sh 'kubectl apply -f deployment.yaml'
+                    sh 'kubectl apply -f service.yaml'
                 }
             }
         }
-
-        stage('Deploy to EKS') {
-            steps {
-                script {
-                    withAWS(credentials: "${AWS_CREDS_ID}", region: "${AWS_REGION}") {
-                        sh "aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}"
-                        sh "kubectl set image deployment/minecraft-deployment minecraft-server=${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-                    }
-                }
-            }
+    }
+    
+    post {
+        always {
+            echo 'Cleaning up the workspace...'
+            cleanWs()
         }
     }
 }
