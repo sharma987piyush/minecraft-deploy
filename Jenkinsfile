@@ -2,7 +2,7 @@ pipeline {
     agent any 
     environment {
         AWS_REGION        = 'us-east-1'
-        ECR_REGISTRY      = '395305481503.dkr.ecr.us-east-1.amazonaws.com/mine-ecr'
+        ECR_REGISTRY      = '395305481503.dkr.ecr.us-east-1.amazonaws.com'
         ECR_REPOSITORY    = 'mine-ecr' 
         IMAGE_TAG         = "build-${BUILD_NUMBER}" 
         EKS_CLUSTER_NAME  = 'my-minecraft-cluster' 
