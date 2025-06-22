@@ -41,8 +41,29 @@ pipeline {
                 }
             }
         }
+        stage('4. Deploy to Amazon EKS (DEBUGGING)') {
+            steps {
+                script {
+                    echo "--- DEBUGGING START ---"
+                    echo "Current directory mein saari files check kar raha hoon:"
+                    
+                    // Yeh command saari files aur folders ko detail mein list karegi
+                    sh 'ls -la' 
 
-        stage('4. Deploy to Amazon EKS') {
+                    echo "--- DEBUGGING END ---"
+
+                    // Asli deployment ko abhi ke liye rok diya gaya hai
+                    /* withAWS(credentials: "${AWS_CREDS_ID}", region: "${AWS_REGION}") {
+                        sh "aws eks update-kubeconfig --name ${EKS_CLUSTER_NAME} --region ${AWS_REGION}"
+                        sh "sed -i 's|image:.*|image: ${ECR_IMAGE_URL}|g' deployment.yaml"
+                        sh 'kubectl apply -f deployment.yaml'
+                        sh 'kubectl apply -f service.yaml'
+                    }
+                    */
+                }
+            }
+        }
+        stage('5. Deploy to Amazon EKS') {
             steps {
                 // Yahan bhi saara logic script block ke andar hai
                 script {
